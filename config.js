@@ -1,6 +1,6 @@
 
 window.CLOUDINARY_CONFIG = {
-  cloudName: 'YOUR_CLOUD_NAME',
+  cloudName: 'dkxkm2mbo',
   uploadPreset: 'photo-profile-auto',
   folder: 'IMAGE',
   countdownSeconds: 2,
