@@ -10,9 +10,10 @@
     preview: $('preview'),
     statusDot: $('statusDot'),
     statusText: $('statusText'),
+    frostOverlay: $('frostOverlay'),
+    playButton: $('playButton'),
     countdownOverlay: $('countdownOverlay'),
     countdownNumber: $('countdownNumber'),
-    faceGuide: $('faceGuide'),
     cameraLoader: $('cameraLoader'),
     uploadSection: $('uploadSection'),
     uploadBar: $('uploadBar'),
@@ -21,13 +22,11 @@
     resultTitle: $('resultTitle'),
     resultMessage: $('resultMessage'),
     resultLink: $('resultLink'),
-    resultIcon: $('resultIcon'),
     errorCard: $('errorCard'),
     errorMessage: $('errorMessage'),
     permissionCard: $('permissionCard'),
     permissionMessage: $('permissionMessage'),
-    configWarning: $('configWarning'),
-    actionBtn: $('actionBtn')
+    configWarning: $('configWarning')
   };
 
   let stream = null;
@@ -37,7 +36,7 @@
   const PERMISSION_MSG_PROMPT =
     'برای عکس‌برداری، وقتی مرورگر پرسید «اجازه دسترسی به دوربین» را بزنید Allow / اجازه.';
   const PERMISSION_MSG_DENIED =
-    'دسترسی به دوربین داده نشده است. از تنظیمات مرورگر (آیکون قفل کنار آدرس) اجازه Camera را فعال کنید، سپس دوباره این دکمه را بزنید.';
+    'دسترسی به دوربین داده نشده است. از تنظیمات مرورگر (آیکون قفل کنار آدرس) اجازه Camera را فعال کنید، سپس دوباره دکمه پلی را بزنید.';
 
   const CONSOLE_FOLDER_URL =
     'https://console.cloudinary.com/app/c-f96a9767367eb33249b8855c1d343d/assets/media_library/folders/cf5125957909157162ac18d215d16f5f79?view_mode=mosaic';
@@ -48,41 +47,52 @@
 
   function setStatus(text, color) {
     els.statusText.textContent = text;
-    const colors = {
-      amber: 'bg-amber-400',
-      blue: 'bg-brand-500',
-      green: 'bg-emerald-400',
-      red: 'bg-red-400'
-    };
-    els.statusDot.className = 'h-2 w-2 rounded-full ' + (colors[color] || colors.amber);
+    els.statusDot.className = 'status-dot ' + (color || 'amber');
+  }
+
+  function showPanel(el) {
+    el.classList.add('visible');
+  }
+
+  function hidePanel(el) {
+    el.classList.remove('visible');
   }
 
   function showError(msg) {
-    els.errorCard.classList.remove('hidden');
+    showPanel(els.errorCard);
     els.errorMessage.textContent = msg;
     setStatus('خطا', 'red');
   }
 
   function hideError() {
-    els.errorCard.classList.add('hidden');
+    hidePanel(els.errorCard);
   }
 
   function showPermissionRequired(state) {
-    els.permissionCard.classList.remove('hidden');
+    showPanel(els.permissionCard);
     els.permissionMessage.textContent =
       state === 'denied' ? PERMISSION_MSG_DENIED : PERMISSION_MSG_PROMPT;
     setStatus('نیاز به اجازه دوربین', 'amber');
   }
 
   function hidePermissionRequired() {
-    els.permissionCard.classList.add('hidden');
+    hidePanel(els.permissionCard);
+  }
+
+  function showFrostOverlay() {
+    els.frostOverlay.classList.remove('hidden');
+    els.playButton.classList.remove('hidden');
+  }
+
+  function hideFrostOverlay() {
+    els.frostOverlay.classList.add('hidden');
+    els.playButton.classList.add('hidden');
   }
 
   function toPersianNum(n) {
     return String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
   }
 
-  /** هر بار از نو وضعیت دسترسی را می‌خواند — بدون cache */
   async function checkCameraPermission() {
     if (!navigator.permissions?.query) return 'unknown';
     try {
@@ -100,22 +110,22 @@
   }
 
   function resetView() {
-    els.resultCard.classList.add('hidden');
-    els.uploadSection.classList.add('hidden');
+    hidePanel(els.resultCard);
+    els.uploadSection.classList.remove('visible');
     els.preview.classList.add('hidden');
     els.video.classList.remove('hidden');
-    els.faceGuide.classList.remove('hidden');
     captured = false;
+    showFrostOverlay();
   }
 
   async function startCamera() {
     resetView();
     hideError();
-    els.cameraLoader.classList.remove('hidden');
+    els.cameraLoader.classList.add('visible');
     stopStream();
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      els.cameraLoader.classList.add('hidden');
+      els.cameraLoader.classList.remove('visible');
       showError('مرورگر شما از دوربین پشتیبانی نمی‌کند. از Chrome یا Safari روی HTTPS استفاده کنید.');
       return false;
     }
@@ -134,13 +144,14 @@
       els.video.srcObject = stream;
       await els.video.play();
 
-      els.cameraLoader.classList.add('hidden');
+      els.cameraLoader.classList.remove('visible');
+      hideFrostOverlay();
       setStatus('دوربین آماده است', 'blue');
       await runCountdown();
       if (!captured) await captureAndUpload();
       return true;
     } catch (err) {
-      els.cameraLoader.classList.add('hidden');
+      els.cameraLoader.classList.remove('visible');
       const name = err?.name || '';
 
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
@@ -156,20 +167,20 @@
     }
   }
 
-  async function handleAction() {
+  async function handleAction(e) {
+    if (e) e.stopPropagation();
     if (busy) return;
+
     busy = true;
-    els.actionBtn.disabled = true;
-    els.actionBtn.classList.add('opacity-60');
+    els.playButton.disabled = true;
 
     try {
       if (!isConfigured()) {
-        els.configWarning.classList.remove('hidden');
+        showPanel(els.configWarning);
         showError('ابتدا config.js را تنظیم کنید.');
         return;
       }
 
-      // هر کلیک: بررسی تازه دسترسی — بدون حالت موقتی
       const perm = await checkCameraPermission();
 
       if (perm === 'denied') {
@@ -189,13 +200,11 @@
         if (permAfter !== 'granted') {
           showPermissionRequired(permAfter === 'denied' ? 'denied' : 'prompt');
         }
-      } else {
-        els.actionBtn.textContent = 'عکس‌برداری مجدد';
+        showFrostOverlay();
       }
     } finally {
       busy = false;
-      els.actionBtn.disabled = false;
-      els.actionBtn.classList.remove('opacity-60');
+      els.playButton.disabled = false;
     }
   }
 
@@ -204,15 +213,13 @@
     if (seconds === 0) return Promise.resolve();
 
     return new Promise((resolve) => {
-      els.countdownOverlay.classList.remove('hidden');
-      els.countdownOverlay.classList.add('flex');
+      els.countdownOverlay.classList.add('visible');
       let left = seconds;
 
       const tick = () => {
         els.countdownNumber.textContent = toPersianNum(left);
         if (left <= 0) {
-          els.countdownOverlay.classList.add('hidden');
-          els.countdownOverlay.classList.remove('flex');
+          els.countdownOverlay.classList.remove('visible');
           resolve();
           return;
         }
@@ -296,46 +303,60 @@
       els.preview.src = previewUrl;
       els.preview.classList.remove('hidden');
       els.video.classList.add('hidden');
-      els.faceGuide.classList.add('hidden');
 
-      els.uploadSection.classList.remove('hidden');
+      els.uploadSection.classList.add('visible');
       els.uploadBar.style.width = '0%';
       setStatus('در حال آپلود...', 'blue');
 
       const result = await uploadToCloudinary(blob);
       URL.revokeObjectURL(previewUrl);
 
-      els.resultCard.classList.remove('hidden');
       els.resultTitle.textContent = 'آپلود موفق';
-      els.resultTitle.className = 'font-semibold text-emerald-400';
-      els.resultIcon.className =
-        'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400';
+      els.resultTitle.style.color = '#34d399';
       els.resultMessage.textContent = result.public_id || result.secure_url || '';
       els.resultLink.href = result.secure_url || CONSOLE_FOLDER_URL;
       els.resultLink.textContent = result.secure_url ? 'مشاهده عکس' : 'باز کردن فولدر IMAGE';
+      showPanel(els.resultCard);
 
       setStatus('آپلود شد', 'green');
+      showFrostOverlay();
     } catch (err) {
+      captured = false;
+      showFrostOverlay();
       showError(err.message || 'خطای ناشناخته');
     }
   }
 
+  function bindPlayTriggers() {
+    els.playButton.addEventListener('click', handleAction);
+    els.frostOverlay.addEventListener('click', (e) => {
+      if (e.target === els.frostOverlay) handleAction(e);
+    });
+    els.frostOverlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleAction();
+      }
+    });
+  }
+
   async function init() {
     if (!isConfigured()) {
-      els.configWarning.classList.remove('hidden');
+      showPanel(els.configWarning);
     }
 
-    els.actionBtn.addEventListener('click', handleAction);
+    bindPlayTriggers();
 
-    // بارگذاری صفحه: فقط وضعیت دسترسی را چک کن، خودکار دوربین باز نکن
     const perm = await checkCameraPermission();
     if (perm !== 'granted') {
       showPermissionRequired(perm === 'denied' ? 'denied' : 'prompt');
-      setStatus('منتظر اجازه دوربین', 'amber');
+      setStatus('دکمه پلی را بزنید', 'amber');
     } else {
-      setStatus('آماده — دکمه را بزنید', 'green');
+      setStatus('دکمه پلی را بزنید', 'green');
     }
   }
+
+  window.addEventListener('beforeunload', stopStream);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

@@ -6,148 +6,362 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>عکس‌برداری | IMAGE</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Vazirmatn', 'system-ui', 'sans-serif'] },
-          colors: {
-            brand: { 50: '#eef9ff', 100: '#d9f1ff', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1' }
-          }
-        }
-      }
-    };
-  </script>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    body { -webkit-tap-highlight-color: transparent; }
-    video { transform: scaleX(-1); }
-    .preview-mirror { transform: scaleX(-1); }
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 1; }
-      100% { transform: scale(1.15); opacity: 0; }
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: 'Vazirmatn', sans-serif;
+      background: #0a0a0a;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      color: #fff;
     }
-    .capture-ring::before {
-      content: '';
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fbbf24;
+      flex-shrink: 0;
+    }
+
+    .status-dot.amber { background: #fbbf24; }
+    .status-dot.blue { background: #38bdf8; }
+    .status-dot.green { background: #34d399; }
+    .status-dot.red { background: #f87171; }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(255, 0, 255, 0.25);
+      aspect-ratio: 3 / 4;
+      background: #111;
+    }
+
+    #video,
+    #preview {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #preview.hidden,
+    #video.hidden {
+      display: none;
+    }
+
+    .noise-container {
       position: absolute;
-      inset: -8px;
-      border-radius: 9999px;
-      border: 3px solid #0ea5e9;
-      animation: pulse-ring 1.2s ease-out infinite;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.28;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 160px 160px;
+      animation: grain 0.35s steps(6) infinite;
+    }
+
+    @keyframes grain {
+      0%   { transform: translate(0, 0); }
+      20%  { transform: translate(-2px, 1px); }
+      40%  { transform: translate(2px, -2px); }
+      60%  { transform: translate(-1px, 2px); }
+      80%  { transform: translate(1px, -1px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .frost-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(8, 8, 12, 0.35);
+      backdrop-filter: blur(22px) saturate(1.15);
+      -webkit-backdrop-filter: blur(22px) saturate(1.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+      z-index: 10;
+      user-select: none;
+    }
+
+    .frost-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #playButton {
+      position: relative;
+      width: 68px;
+      height: 48px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      z-index: 20;
+      transition: transform 0.2s ease, filter 0.2s ease, opacity 0.3s ease;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
+    }
+
+    #playButton svg {
+      display: block;
+      width: 68px;
+      height: 48px;
+    }
+
+    #playButton:hover:not(:disabled) {
+      transform: scale(1.08);
+      filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.55));
+    }
+
+    #playButton:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    #playButton:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+
+    #playButton.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .countdown-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 15;
+    }
+
+    .countdown-overlay.visible {
+      display: flex;
+    }
+
+    .countdown-number {
+      font-size: 5rem;
+      font-weight: 700;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .camera-loader {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: rgba(10, 10, 10, 0.85);
+      z-index: 25;
+    }
+
+    .camera-loader.visible {
+      display: flex;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #ff0000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .upload-overlay {
+      position: absolute;
+      inset: auto 0 0;
+      padding: 16px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+      z-index: 18;
+      display: none;
+    }
+
+    .upload-overlay.visible {
+      display: block;
+    }
+
+    .upload-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 8px;
+    }
+
+    .upload-bar-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+    }
+
+    .upload-bar-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: #ff0000;
+      transition: width 0.3s ease;
+    }
+
+    .panel {
+      width: 100%;
+      max-width: 480px;
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .panel.visible {
+      display: block;
+    }
+
+    .panel-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .panel-warn {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      color: #fde68a;
+    }
+
+    .panel-success {
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+    }
+
+    .panel-title {
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+
+    .panel-body {
+      margin: 0;
+      font-size: 0.8rem;
+      opacity: 0.9;
+      word-break: break-all;
+    }
+
+    .panel-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: #ff6b6b;
+      font-size: 0.8rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .noise-container { animation: none; }
+      .frost-overlay, #playButton, .upload-bar-fill { transition: none; }
+      .spinner { animation: none; }
     }
   </style>
 </head>
-<body class="min-h-dvh bg-slate-950 text-white font-sans antialiased">
+<body>
 
-  <div class="mx-auto flex min-h-dvh max-w-lg flex-col px-4 py-6 safe-area">
+  <div class="status-badge">
+    <span id="statusDot" class="status-dot amber"></span>
+    <span id="statusText">در حال آماده‌سازی...</span>
+  </div>
 
-    <!-- Header -->
-    <header class="mb-6 text-center">
-      <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/20 ring-1 ring-brand-500/40">
-        <svg class="h-7 w-7 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+  <div class="video-wrapper">
+    <video id="video" playsinline webkit-playsinline muted></video>
+    <img id="preview" class="hidden" alt="پیش‌نمایش" />
+    <canvas id="canvas" hidden></canvas>
+
+    <div class="noise-container" aria-hidden="true"></div>
+
+    <div id="frostOverlay" class="frost-overlay" role="button" tabindex="0" aria-label="شروع عکس‌برداری">
+      <button id="playButton" type="button" aria-label="شروع عکس‌برداری">
+        <svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#FF0000"/>
+          <path d="M 45,24 27,14 27,34" fill="#FFFFFF"/>
         </svg>
-      </div>
-      <h1 class="text-xl font-bold tracking-tight">عکس‌برداری خودکار</h1>
-      <p class="mt-1 text-sm text-slate-400">دوربین جلو · آپلود به Cloudinary</p>
-    </header>
-
-    <!-- Status badge -->
-    <div id="statusBadge" class="mb-4 flex items-center justify-center gap-2 rounded-full bg-slate-800/80 px-4 py-2 text-sm ring-1 ring-slate-700">
-      <span id="statusDot" class="h-2 w-2 rounded-full bg-amber-400"></span>
-      <span id="statusText">در حال آماده‌سازی...</span>
+      </button>
     </div>
 
-    <!-- Camera view -->
-    <div class="relative mb-5 overflow-hidden rounded-3xl bg-slate-900 ring-1 ring-slate-800 aspect-[3/4] max-h-[55dvh]">
-      <video id="video" class="h-full w-full object-cover" playsinline autoplay muted></video>
-      <canvas id="canvas" class="hidden"></canvas>
-
-      <!-- Preview after capture -->
-      <img id="preview" class="preview-mirror hidden h-full w-full object-cover" alt="پیش‌نمایش" />
-
-      <!-- Overlay: countdown -->
-      <div id="countdownOverlay" class="absolute inset-0 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
-        <span id="countdownNumber" class="text-7xl font-bold text-white drop-shadow-lg">3</span>
-      </div>
-
-      <!-- Face guide -->
-      <div id="faceGuide" class="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div class="capture-ring relative h-48 w-48 rounded-full border-2 border-white/30"></div>
-      </div>
-
-      <!-- Loading spinner on camera -->
-      <div id="cameraLoader" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900">
-        <div class="h-10 w-10 animate-spin rounded-full border-4 border-slate-700 border-t-brand-500"></div>
-        <p class="text-sm text-slate-400">فعال‌سازی دوربین جلو...</p>
-      </div>
+    <div id="countdownOverlay" class="countdown-overlay">
+      <span id="countdownNumber" class="countdown-number">۳</span>
     </div>
 
-    <!-- Progress bar -->
-    <div id="uploadSection" class="mb-5 hidden">
-      <div class="mb-2 flex justify-between text-xs text-slate-400">
+    <div id="cameraLoader" class="camera-loader">
+      <div class="spinner"></div>
+      <p>فعال‌سازی دوربین جلو...</p>
+    </div>
+
+    <div id="uploadSection" class="upload-overlay">
+      <div class="upload-label">
         <span>آپلود به Cloudinary</span>
         <span id="uploadPercent">۰٪</span>
       </div>
-      <div class="h-2 overflow-hidden rounded-full bg-slate-800">
-        <div id="uploadBar" class="h-full w-0 rounded-full bg-brand-500 transition-all duration-300"></div>
+      <div class="upload-bar-track">
+        <div id="uploadBar" class="upload-bar-fill"></div>
       </div>
     </div>
+  </div>
 
-    <!-- Result card -->
-    <div id="resultCard" class="mb-5 hidden rounded-2xl bg-slate-900 p-4 ring-1 ring-slate-800">
-      <div class="flex items-start gap-3">
-        <div id="resultIcon" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-          </svg>
-        </div>
-        <div class="min-w-0 flex-1">
-          <p id="resultTitle" class="font-semibold text-emerald-400">آپلود موفق</p>
-          <p id="resultMessage" class="mt-1 break-all text-xs text-slate-400"></p>
-          <a id="resultLink" href="#" target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-brand-500 underline">مشاهده در Cloudinary</a>
-        </div>
-      </div>
-    </div>
+  <div id="resultCard" class="panel panel-success">
+    <p id="resultTitle" class="panel-title" style="color:#34d399">آپلود موفق</p>
+    <p id="resultMessage" class="panel-body"></p>
+    <a id="resultLink" class="panel-link" href="#" target="_blank" rel="noopener">مشاهده عکس</a>
+  </div>
 
-    <!-- Permission card (همیشه وقتی دسترسی نباشد) -->
-    <div id="permissionCard" class="mb-5 hidden rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
-      <div class="flex items-start gap-3">
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-          </svg>
-        </div>
-        <div>
-          <p class="font-semibold text-amber-300">دسترسی به دوربین</p>
-          <p id="permissionMessage" class="mt-1 text-sm text-amber-200/80"></p>
-        </div>
-      </div>
-    </div>
+  <div id="permissionCard" class="panel panel-warn">
+    <p class="panel-title">دسترسی به دوربین</p>
+    <p id="permissionMessage" class="panel-body"></p>
+  </div>
 
-    <!-- Error card -->
-    <div id="errorCard" class="mb-5 hidden rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-      <p class="font-semibold text-red-400">خطا</p>
-      <p id="errorMessage" class="mt-1 text-sm text-red-300/80"></p>
-    </div>
+  <div id="errorCard" class="panel panel-error">
+    <p class="panel-title">خطا</p>
+    <p id="errorMessage" class="panel-body"></p>
+  </div>
 
-    <!-- Config warning -->
-    <div id="configWarning" class="mb-5 hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
-      <p class="font-semibold">تنظیمات Cloudinary ناقص است</p>
-      <p class="mt-1 text-amber-200/80">فایل <code class="rounded bg-black/30 px-1">config.js</code> را باز کنید و <code class="rounded bg-black/30 px-1">cloudName</code> و <code class="rounded bg-black/30 px-1">uploadPreset</code> را وارد کنید.</p>
-    </div>
-
-    <!-- Actions -->
-    <div class="mt-auto flex flex-col gap-3">
-      <button id="actionBtn" type="button" class="w-full rounded-2xl bg-brand-600 py-4 text-center font-semibold text-white shadow-lg shadow-brand-600/25 active:scale-[0.98] transition-transform">
-        شروع عکس‌برداری
-      </button>
-      <p class="text-center text-xs text-slate-500">
-        با هر کلیک، وضعیت دسترسی دوربین بررسی می‌شود.
-      </p>
-    </div>
+  <div id="configWarning" class="panel panel-warn">
+    <p class="panel-title">تنظیمات Cloudinary ناقص است</p>
+    <p class="panel-body">فایل config.js را باز کنید و cloudName و uploadPreset را وارد کنید.</p>
   </div>
 
   <script src="config.js"></script>
