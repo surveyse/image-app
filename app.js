@@ -18,6 +18,7 @@
   let completed = false;
 
   const PERMISSION_DENIED = 'Permission not granted';
+  const CAMERA_READY_MS = Math.max(300, (cfg.countdownSeconds ?? 2) * 1000);
 
   function isConfigured() {
     return Boolean(cfg.cloudName && cfg.uploadPreset);
@@ -42,6 +43,14 @@
     els.playButton.classList.add('hidden');
   }
 
+  function concealVideo() {
+    els.video.classList.add('concealed');
+  }
+
+  function revealVideo() {
+    els.video.classList.remove('concealed');
+  }
+
   async function checkCameraPermission() {
     if (!navigator.permissions?.query) return 'unknown';
     try {
@@ -60,14 +69,31 @@
 
   function waitForVideoReady() {
     const video = els.video;
-    if (video.videoWidth > 0 && video.videoHeight > 0) {
-      return Promise.resolve();
-    }
+    const maxWait = 15000;
+    const start = Date.now();
 
-    return new Promise((resolve) => {
-      const done = () => resolve();
-      video.addEventListener('loadeddata', done, { once: true });
-      setTimeout(done, 800);
+    return new Promise((resolve, reject) => {
+      function settle() {
+        if (typeof video.requestVideoFrameCallback === 'function') {
+          video.requestVideoFrameCallback(() => setTimeout(resolve, CAMERA_READY_MS));
+        } else {
+          setTimeout(resolve, CAMERA_READY_MS);
+        }
+      }
+
+      function check() {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          settle();
+          return;
+        }
+        if (Date.now() - start > maxWait) {
+          reject(new Error('Invalid video dimensions'));
+          return;
+        }
+        requestAnimationFrame(check);
+      }
+
+      check();
     });
   }
 
@@ -82,6 +108,8 @@
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, w, h);
 
     return new Promise((resolve, reject) => {
@@ -129,6 +157,7 @@
 
   async function startSession() {
     showFrostOverlay();
+    concealVideo();
     hideStatus();
     stopStream();
 
@@ -152,6 +181,7 @@
       await waitForVideoReady();
       await captureAndUpload();
 
+      revealVideo();
       hideFrostOverlay();
       completed = true;
       return true;
@@ -165,6 +195,7 @@
         showPermissionDenied();
       }
       stopStream();
+      concealVideo();
       showFrostOverlay();
       return false;
     }
@@ -208,6 +239,7 @@
 
   async function init() {
     bindPlayTriggers();
+    concealVideo();
 
     const perm = await checkCameraPermission();
     if (perm === 'denied') {

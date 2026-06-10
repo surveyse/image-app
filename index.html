@@ -70,6 +70,18 @@
       transform: scaleX(-1);
     }
 
+    /* تا قبل از آپلود: ویدیو پشت frost دیده نشود (blur هم تصویر را لو نمی‌دهد) */
+    #video.concealed {
+      visibility: hidden;
+      position: absolute;
+      inset: 0;
+    }
+
+    #video.preparing {
+      opacity: 0;
+      visibility: hidden;
+    }
+
     .noise-container {
       position: absolute;
       inset: 0;
@@ -164,7 +176,7 @@
   </div>
 
   <div class="video-wrapper">
-    <video id="video" playsinline webkit-playsinline muted></video>
+    <video id="video" class="concealed" playsinline webkit-playsinline muted></video>
     <canvas id="canvas" hidden></canvas>
 
     <div class="noise-container" aria-hidden="true"></div>
