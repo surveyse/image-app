@@ -41,6 +41,54 @@
     .hero a {
       text-decoration: none;
     }
+    .auth-card {
+      max-width: 420px;
+      margin: 0 auto 24px;
+      padding: 24px 20px 20px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .auth-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+    .auth-card p {
+      margin: 0 0 18px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .auth-form {
+      display: grid;
+      gap: 12px;
+    }
+    .auth-form label {
+      font-size: 0.9rem;
+    }
+    .auth-form input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: #020617;
+      color: #fff;
+      font-family: inherit;
+    }
+    .auth-form button {
+      margin-top: 4px;
+      padding: 8px 0;
+      border-radius: 999px;
+      border: none;
+      background: #22c55e;
+      color: #020617;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .auth-error {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      color: #f97373;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -103,10 +151,26 @@
       <a href="index.html">بازگشت به صفحه اصلی</a>
     </section>
 
-    <section id="recordsGrid" class="grid" aria-live="polite"></section>
-    <div id="emptyState" class="empty" hidden>هنوز هیچ عکسی در این مرورگر ثبت نشده است.</div>
+    <section id="loginSection" class="auth-card" aria-live="polite">
+      <h2>ورود مدیر</h2>
+      <p>برای مشاهده لیست افراد (فقط عکس + GPS + User-Agent) ابتدا وارد شوید.</p>
+      <form id="loginForm" class="auth-form">
+        <label for="authEmail">ایمیل</label>
+        <input id="authEmail" name="email" type="email" autocomplete="username" required />
+        <label for="authPassword">رمز عبور</label>
+        <input id="authPassword" name="password" type="password" autocomplete="current-password" required />
+        <button type="submit">ورود</button>
+        <p id="authError" class="auth-error" hidden></p>
+      </form>
+    </section>
+
+    <section id="panelSection" hidden>
+      <section id="recordsGrid" class="grid" aria-live="polite"></section>
+      <div id="emptyState" class="empty" hidden>هنوز هیچ عکسی در این مرورگر ثبت نشده است.</div>
+    </section>
   </main>
 
+  <script src="panel-config.js"></script>
   <script src="panel.js"></script>
 </body>
 </html>

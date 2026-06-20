@@ -1,9 +1,18 @@
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   const STORAGE_KEY = 'image-upload-records';
+  const AUTH_TOKEN_KEY = 'image_panel_auth_token';
+  const AUTH_EXPIRES_KEY = 'image_panel_auth_expires_at';
+
   const grid = document.getElementById('recordsGrid');
   const emptyState = document.getElementById('emptyState');
+  const loginSection = document.getElementById('loginSection');
+  const panelSection = document.getElementById('panelSection');
+  const loginForm = document.getElementById('loginForm');
+  const authError = document.getElementById('authError');
+
+  const authCfg = window.IMAGE_PANEL_AUTH || {};
 
   function readRecords() {
     try {
@@ -50,6 +59,80 @@
     return 'Unknown';
   }
 
+  function isAuthConfigured() {
+    return (
+      typeof authCfg.supabaseUrl === 'string' &&
+      authCfg.supabaseUrl.startsWith('https://') &&
+      typeof authCfg.supabaseAnonKey === 'string' &&
+      authCfg.supabaseAnonKey.length > 10 &&
+      !authCfg.supabaseAnonKey.includes('YOUR_SUPABASE')
+    );
+  }
+
+  function isLoggedIn() {
+    try {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const exp = Number(localStorage.getItem(AUTH_EXPIRES_KEY) || 0);
+      if (!token || !exp || Date.now() > exp) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function saveSession(accessToken, expiresIn) {
+    const ttl = Math.max((expiresIn || 3600) - 60, 60) * 1000;
+    const exp = Date.now() + ttl;
+    localStorage.setItem(AUTH_TOKEN_KEY, accessToken);
+    localStorage.setItem(AUTH_EXPIRES_KEY, String(exp));
+  }
+
+  async function loginWithSupabase(email, password) {
+    const url = `${authCfg.supabaseUrl}/auth/v1/token?grant_type=password`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: authCfg.supabaseAnonKey,
+        Authorization: `Bearer ${authCfg.supabaseAnonKey}`
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      let msg = body;
+      try {
+        const data = JSON.parse(body);
+        msg = data?.msg || data?.message || data?.error_description || body;
+      } catch {
+        /* ignore */
+      }
+      const err = new Error(msg || 'خطا در ورود');
+      err.status = res.status;
+      throw err;
+    }
+
+    return res.json();
+  }
+
+  function showPanel() {
+    loginSection.hidden = true;
+    panelSection.hidden = false;
+    render();
+  }
+
+  function showLogin(message) {
+    panelSection.hidden = true;
+    loginSection.hidden = false;
+    if (message) {
+      authError.textContent = message;
+      authError.hidden = false;
+    } else {
+      authError.hidden = true;
+    }
+  }
+
   function render() {
     const records = readRecords();
     if (!records.length) {
@@ -78,5 +161,43 @@
       .join('');
   }
 
-  render();
+  if (!isAuthConfigured()) {
+    // اگر تنظیم نشده باشد، فعلاً لاگین را رد می‌کنیم ولی فقط روی همین مرورگر است.
+    showPanel();
+  } else if (isLoggedIn()) {
+    showPanel();
+  } else {
+    showLogin();
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const email = form.email.value;
+      const password = form.password.value;
+
+      authError.hidden = true;
+      authError.textContent = '';
+
+      if (!isAuthConfigured()) {
+        authError.hidden = false;
+        authError.textContent = 'تنظیمات Supabase در panel-config.js کامل نشده است.';
+        return;
+      }
+
+      try {
+        const session = await loginWithSupabase(email, password);
+        saveSession(session.access_token, session.expires_in);
+        showPanel();
+      } catch (err) {
+        authError.hidden = false;
+        authError.textContent =
+          err.status === 401 || err.status === 403
+            ? 'ایمیل یا رمز عبور نادرست است.'
+            : (err.message || 'خطا در ورود');
+      }
+    });
+  }
 })();
+
