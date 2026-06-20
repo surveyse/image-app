@@ -49,7 +49,7 @@ Cloudinary سرویس ابری برای:
 
 | فیلد | مثال | توضیح |
 |------|------|--------|
-| **Cloud name** | `dkxkm2mbo` | شناسه عمومی اکانت — در URL و `config.js` |
+| **Cloud name** | `dlpapw5h7` | شناسه عمومی اکانت — در URL و `config.js` |
 | **API Key** | عدد طولانی | برای API از سرور |
 | **API Secret** | رشته مخفی | **هرگز در کد فرانت‌اند نگذار** |
 
@@ -67,7 +67,7 @@ Cloudinary سرویس ابری برای:
 مثال URL عکس:
 
 ```
-https://res.cloudinary.com/dkxkm2mbo/image/upload/v1234567890/IMAGE/photo-123.jpg
+https://res.cloudinary.com/dlpapw5h7/image/upload/v1234567890/IMAGE/photo-123.jpg
 ```
 
 ### API Key و API Secret
@@ -93,7 +93,7 @@ https://res.cloudinary.com/dkxkm2mbo/image/upload/v1234567890/IMAGE/photo-123.jp
 
 | فیلد | مقدار |
 |------|--------|
-| **Preset name** | مثلاً `photo-profile-auto` |
+| **Preset name** | مثلاً `image-auto` |
 | **Signing Mode** | **Unsigned** (خیلی مهم) |
 | **Folder** | `IMAGE` (اختیاری؛ می‌توان از `config.js` هم بفرستیم) |
 | **Allowed formats** | image (یا jpg, png) |
@@ -130,13 +130,13 @@ https://res.cloudinary.com/dkxkm2mbo/image/upload/v1234567890/IMAGE/photo-123.jp
 
 ```javascript
 window.CLOUDINARY_CONFIG = {
-  cloudName: 'dkxkm2mbo',           // از Dashboard
-  uploadPreset: 'photo-profile-auto', // نام Unsigned preset
+  cloudName: 'dlpapw5h7',           // از Dashboard
+  uploadPreset: 'image-auto', // نام Unsigned preset
   folder: 'IMAGE',
   countdownSeconds: 2,              // تأخیر قبل از عکس (ثانیه، بدون UI)
   jpegQuality: 0.92,                // کیفیت JPEG (0 تا 1)
   playbackVideoUrl:                 // ویدیو بعد از آپلود
-    'https://res.cloudinary.com/dkxkm2mbo/video/upload/v1781074193/vedio_kf8fct.mp4'
+    'https://res.cloudinary.com/dlpapw5h7/video/upload/v1781074193/vedio_kf8fct.mp4'
 };
 ```
 
