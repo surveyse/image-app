@@ -89,19 +89,23 @@ https://res.cloudinary.com/dlpapw5h7/image/upload/v1234567890/IMAGE/photo-123.jp
 2. **Upload** → **Upload presets**.
 3. **Add upload preset**.
 
-### تنظیمات پیشنهادی
+### تنظیمات فعلی پروژه (preset `image-auto`)
 
 | فیلد | مقدار |
 |------|--------|
-| **Preset name** | مثلاً `image-auto` |
-| **Signing Mode** | **Unsigned** (خیلی مهم) |
-| **Folder** | `IMAGE` (اختیاری؛ می‌توان از `config.js` هم بفرستیم) |
-| **Allowed formats** | image (یا jpg, png) |
-| **Max file size** | مثلاً 10MB |
+| **Preset name** | `image-auto` |
+| **Signing Mode** | **Unsigned** |
+| **Asset folder** | `IMAGE` |
+| **Type** | upload |
+| **Overwrite** | false |
+| **Use filename** | false |
+| **Unique filename** | false |
+| **Use filename as display name** | true |
+| **Use asset folder as public id prefix** | false |
 
 4. **Save**.
 
-نام preset را در `config.js` → `uploadPreset` بگذار.
+نام preset را در `config.js` → `uploadPreset` بگذار (فعلاً: `image-auto`).
 
 ### چرا Unsigned؟
 
@@ -135,8 +139,7 @@ window.CLOUDINARY_CONFIG = {
   folder: 'IMAGE',
   countdownSeconds: 2,              // تأخیر قبل از عکس (ثانیه، بدون UI)
   jpegQuality: 0.92,                // کیفیت JPEG (0 تا 1)
-  playbackVideoUrl:                 // ویدیو بعد از آپلود
-    'https://res.cloudinary.com/dlpapw5h7/video/upload/v1781074193/vedio_kf8fct.mp4'
+  playbackVideoUrl: ''              // URL ویدیو از Media Library
 };
 ```
 
